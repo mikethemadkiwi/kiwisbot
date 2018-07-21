@@ -55,7 +55,7 @@ let beamInteractive = function(auth) {
             const groups = [];
             // groups.push({groupID: 'admin', sceneID: 'admin'});
             // groups.push({groupID: 'game', sceneID: 'game'});
-            groups.push({groupID: 'banned', sceneID: 'banned'});
+            //groups.push({groupID: 'banned', sceneID: 'banned'});
             self.mixerInteractive.createGroups({groups: groups}) //<-- adds new groups.
         })
         .then(() => {
