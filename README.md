@@ -3,8 +3,8 @@ requires a json file for config : "config.json"
 containing the following :
   
 {  
-    "clientId": "6b31c7d89c9728736869ac0af80349ee4014efc5d5b5e029",  
-    "clientSecret": "",  
-    "channelId": 3705,  
-    "interactiveId": 247369  
+    "clientId": "000000000000000000000000000",  YOUR API CLIENT KEY  
+    "clientSecret": "",  (not always needed, but put it if you use it.)  
+    "channelId": 0000,  YOUR CHANNEL ID  
+    "interactiveId": 000000   YOUR INTERACTIVE GAME NUMBER  
 }  
