@@ -84,7 +84,13 @@ let beamchat = function(auth) {
         .catch(function(err){
             console.log(err)
         });
-        }
+    }
+    self.whisper = function(user, msg) {
+        mixer.call('whisper', [user, `${msg}`])
+        .catch(function(err){
+            console.log(err)
+        });
+    }
     self.poll  = function(q, a, t){
         mixer.call('vote:start', [q, a, t]);
     }

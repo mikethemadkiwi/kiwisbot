@@ -18,7 +18,6 @@ let beamInteractive = function(auth) {
     mixerInteractivelib.setWebSocket(require('ws'));
     self.mixerInteractive.on('open', () => this.mixerClientOpened());
     self.mixerInteractive.on('error', e => this.mixerGameClientError(e));
-
     self.mixerInteractive.open(auth).catch(this.mixerGameClientError);
     
     this.serverDeets = function(deets){
@@ -100,6 +99,7 @@ let beamInteractive = function(auth) {
                     if (group !== undefined) {
                         participant.groupID = groupid;
                         this.mixerInteractive.updateParticipants({participants: [participant]});
+                        console.log(participant)
                     } else {
                     console.log(`weird. failed. maybe check it's a legit groupid?`)
                     }
@@ -136,38 +136,31 @@ let beamInteractive = function(auth) {
             // control.setBackgroundColor(`#bada55`)
             // control.setTextColor(`#000000`)
             control.on('click', (inputEvent, participant) => {
-                if(typeof(inputEvent.transactionID) != 'undefined'){
-                    self.mixerInteractive.captureTransaction(inputEvent.transactionID).catch(reason => console.error('Promise rejected', reason));
-                    console.log(`User ${participant.username} charged ${control.cost} sparks (${inputEvent.transactionID})`)
+                // if(typeof(inputEvent.transactionID) != 'undefined'){
+                //     self.mixerInteractive.captureTransaction(inputEvent.transactionID).catch(reason => console.error('Promise rejected', reason));
+                //     // console.log(`User ${participant.username} charged ${control.cost} sparks (${inputEvent.transactionID})`)
+                // }
+                // console.log(control)
+                // console.log(inputEvent)
+                if(participant.groupID != 'banned'){
+                    self.emit('controlEvt', {type: 'click', data: [control, inputEvent, participant]})
                 }
-                self.emit('controlEvt', {type: 'click', data: [control, inputEvent, participant]})
+                else {                    
+                    console.log(`ignored click from ${participant.username}`)
+                }
             })
 
             control.on('mousedown', (inputEvent, participant) => {
-                // console.log(`user: ${participant.username}: ${control.controlID}`)
                 if(typeof(inputEvent.transactionID) != 'undefined'){
                     self.mixerInteractive.captureTransaction(inputEvent.transactionID).catch(reason => console.error('Promise rejected', reason));
-                    console.log(`User ${participant.username} charged ${control.cost} sparks (${inputEvent.transactionID})`)
-                }                
-                self.emit('controlEvt', {type: 'mousedown', data: [control, inputEvent, participant]}) 
-                // control.disable()
-                // .then(()=>{
-                //     // control.setTextColor(`#ffffff`)
-                // })
-                // .then(()=>{
-                //     // control.setBackgroundColor(`rgba(0,0,0,1)`)                   
-                // })   
-                // .then(()=>{  
-                //     controltimeouts[control.controlID] = setTimeout(function(){
-                //         control.enable()
-                //         .then(()=>{
-                //             // control.setBackgroundColor(`#bada55`)
-                //         })
-                //         .then(()=>{
-                //             // control.setTextColor(`#000000`)
-                //         })
-                //     }, 5000)                                        
-                // }) 
+                    // console.log(`User ${participant.username} charged ${control.cost} sparks (${inputEvent.transactionID})`)
+                } 
+                if(participant.groupID != 'banned'){
+                    self.emit('controlEvt', {type: 'mousedown', data: [control, inputEvent, participant]})
+                }
+                else {                    
+                    console.log(`ignored click from ${participant.username}`)
+                }
             })
         })
     }
