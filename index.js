@@ -4,7 +4,8 @@ const clientLib = require('beam-client-node');
 const auth = require('mixer-shortcode-oauth');
 const colors = require('colors');
 const ws = require('ws'); 
-//npm install beam-interactive-node2 colors ws beam-client-node mixer-shortcode-oauth --save
+const say = require('say');
+//npm install beam-interactive-node2 colors ws beam-client-node mixer-shortcode-oauth say carina --save
 //
 const mixer = [];
 const configfile = './config.json';
@@ -186,10 +187,12 @@ function loadMixerServices(token){
                 })
             break; 
             case'seecode':
-                mixer['chat'].whisper(results.data[2].username,`Github: https://github.com/mikethemadkiwi/Kiwisbot`)
+                mixer['chat'].say(`The Code for this bot is Here @${results.data[2].username}:\n https://github.com/mikethemadkiwi/Kiwisbot`)
+                sayThis(`Check out the code at git hub dot com forward slash mike the mad kiwi`);
             break;
             case'banme':
-                mixer['chat'].selfBan(results.data[2].username, 60)
+                mixer['chat'].selfBan(results.data[2].username, 60);
+                sayThis(`${results.data[2].username} couldnt handle it anymore and banned themselves!`);
             break;
             case'overlay':
                 console.log(results.data[1])
@@ -309,19 +312,20 @@ function loadMixerServices(token){
                         controls: [
                             {
                                 controlID: 'youtubeplayer',
-                                text: 'open',
-                                meta: {Text: cmd[1]}
+                                text: 'yton',
+                                meta: {Text: `${cmd[1]}`}
                             },
                         ],
-                    })  
+                    })
+                break;  
                 case '`ytoff':
                     mixer['interactive'].updateControl({
                         sceneID: 'default',
                         controls: [
                             {
                                 controlID: 'youtubeplayer',
-                                text: 'nope',
-                                meta: {Text: 'nope'}
+                                text: 'ytoff',
+                                meta: {Text: 'ytoff'}
                             },
                         ],
                     })                
@@ -330,91 +334,129 @@ function loadMixerServices(token){
                 }
             }
         }            
-    });
+        });
 
 
     let latestFollow = 'None';
-let lfShow = true;
-let latestUnFollow = 'None';
-let lufShow = true;
-let latestHost = 'None';
-let hasUnFollowed = [];
-let hasFollowed = [];
-let hasHosted = [];
-mixer['const'].on('event', function(data) {
-    console.log(colors.green(`Constellation: `)+colors.yellow(`${data.type}`)); // should return "hosted", "followed", "subscribed" & "resubscribed".
-    switch(data.type){
-        case('followed'):
-            console.log(data.info);
-            if(data.info.following == false){
-                //
+    let lfShow = true;
+    let latestUnFollow = 'None';
+    let lufShow = true;
+    let latestHost = 'None';
+    let hasUnFollowed = [];
+    let hasFollowed = [];
+    let hasHosted = [];
+    mixer['const'].on('event', function(data) {
+        console.log(colors.green(`Constellation: `)+colors.yellow(`${data.type}`)); // should return "hosted", "followed", "subscribed" & "resubscribed".
+        switch(data.type){
+            case('followed'):
+                console.log(data.info);
+                if(data.info.following == false){
+                    //
 
-                if (hasUnFollowed.includes(data.info.user.username) == true){
-                    console.log(`this user has already unfollowed`)
-                }
-                else{           
-                    mixer['chat'].say(`@${data.info.user.username} unfollowed! Fugg You!! We didnt need your kind in here anyway.`)
-                    // sayThis(`${data.info.user.username} unfollowed! Fugg You!! We didnt need your kind in here anyway.`)
-                    hasUnFollowed.push(data.info.user.username);
-                    latestUnFollow = data.info.user.username;
-                    // ib.latestUnFollow = data.info.user.username;
-                }
+                    if (hasUnFollowed.includes(data.info.user.username) == true){
+                        console.log(`this user has already unfollowed`)
+                    }
+                    else{           
+                        mixer['chat'].say(`@${data.info.user.username} unfollowed! Fugg You!! We didnt need your kind in here anyway.`)
+                        sayThis(`${data.info.user.username} unfollowed! Fugg You!! We didnt need your kind in here anyway.`)
+                        hasUnFollowed.push(data.info.user.username);
+                        latestUnFollow = data.info.user.username;
+                        // ib.latestUnFollow = data.info.user.username;
+                    }
 
-                //
-            }
-            else{   
-                if (hasFollowed.includes(data.info.user.username) == true){
-                    console.log(`this user has already followed`)
+                    //
                 }
-                else{           
-                    mixer['chat'].say(`@${data.info.user.username} followed! Thank You!!`)
-                    // sayThis(`${data.info.user.username} followed! Thank You!!`)
-                    hasFollowed.push(data.info.user.username);
-                    latestFollow = data.info.user.username; 
-                    // ib.latestFollow = data.info.user.username;
+                else{   
+                    if (hasFollowed.includes(data.info.user.username) == true){
+                        console.log(`this user has already followed`)
+                    }
+                    else{           
+                        mixer['chat'].say(`@${data.info.user.username} followed! Thank You!!`)
+                        sayThis(`${data.info.user.username} followed! Thank You!!`)
+                        hasFollowed.push(data.info.user.username);
+                        latestFollow = data.info.user.username; 
+                        // ib.latestFollow = data.info.user.username;
+                    } 
+                }          
+            break;
+            case('hosted'):
+                console.log(data.info.hoster.token);
+                if(hasHosted.includes(data.info.hoster.token) == true){
+                    console.log(`this user has already hosted`)
+                }
+                else{          // %USER% is Hosting... Fugg now we have to act professional.
+                    mixer['chat'].say(`@${data.info.hoster.token} is Hosting... Fugg now we have to act professional.`)
+                    sayThis(`${data.info.hoster.token} is Hosting... Fugg now we have to act professional.`)
+                    hasHosted.push(data.info.hoster.token);
+                    latestHost = data.info.hoster.token; 
+                    // ib.latestHost = data.info.hoster.token;
                 } 
-            }          
-        break;
-        case('hosted'):
-            console.log(data.info.hoster.token);
-            if(hasHosted.includes(data.info.hoster.token) == true){
-                console.log(`this user has already hosted`)
+            break;
+            //cos seriously kiwi, subs?!?! pfft lol
+            // case('subscribed'):
+            //     console.log(data.info);
+            //     // io.emit('subscribed', data); 
+            // break;
+            // case('resubShared'):
+            //     console.log(data.info);
+            //     // io.emit('resubShared', data); 
+            // break;
+            // case('resubscribed'):
+            //     console.log(data.info);
+            //     // io.emit('resubscribed', data); 
+            // break;
+            case('update'):
+                console.log(data.info);
+            break;
+            default://dont trigger anything.
+                console.log(data.info);
             }
-            else{          // %USER% is Hosting... Fugg now we have to act professional.
-                mixer['chat'].say(`@${data.info.hoster.token} is Hosting... Fugg now we have to act professional.`)
-                // sayThis(`${data.info.hoster.token} is Hosting... Fugg now we have to act professional.`)
-                hasHosted.push(data.info.hoster.token);
-                latestHost = data.info.hoster.token; 
-                // ib.latestHost = data.info.hoster.token;
-            } 
-        break;
-        //cos seriously kiwi, subs?!?! pfft lol
-        // case('subscribed'):
-        //     console.log(data.info);
-        //     // io.emit('subscribed', data); 
-        // break;
-        // case('resubShared'):
-        //     console.log(data.info);
-        //     // io.emit('resubShared', data); 
-        // break;
-        // case('resubscribed'):
-        //     console.log(data.info);
-        //     // io.emit('resubscribed', data); 
-        // break;
-        case('update'):
-            console.log(data.info);
-        break;
-        default://dont trigger anything.
-            console.log(data.info);
-        }
-    });
-    mixer['const'].on('error', function(data) {
-        console.log(`error`);
-        // console.log(data)
-    });
+        });
+        mixer['const'].on('error', function(data) {
+            console.log(`error`);
+            // console.log(data)
+        });
 
 };
 
+
+let sayBlacklist = [
+    {word:'madkiwi', replace:'mad kiwi'},
+    {word:'kiwisbot', replace:'kiwis bot'},
+    {word:'Mannee', replace:'Dickie'},
+    {word:'CowtopiaPrime', replace:'Mr Moo'},
+    {word:'Katharsus', replace:'Kath'},
+    {word:'weeatpengwins', replace:'The Glorious Mr Pengwins'},
+    {word:'kaptenf1', replace:'kapten f1'},
+    {word:'Hundr', replace:'hundur'},
+    {word:'OMarkishere', replace:'oh mark is here'},
+    {word:'KACILAC', replace:'Kak i Lac'},
+    {word:'o/', replace:'wave'},
+    {word:'o7', replace:'salute'},
+    {word:'REJEkT_RADIO', replace:'Teebs'},
+]
+function sayThis(msg){
+    // for (key in t){
+    //     console.log(t[key]);
+    // }
+    let broken = msg.split(' ');        ///////// THIS AUDIO STILL NEEDS TO BE IN A fuck...
+    //
+    let t = ''
+    for(key in sayBlacklist){
+        for(k2 in broken){
+            if(sayBlacklist[key].word == broken[k2]){
+                //voila!!
+                broken[k2] = sayBlacklist[key].replace;
+            }                 
+        }     
+    }        
+    for(key in broken){
+        broken[key] += ' ';
+    }
+    // this needs to be added to a queu first then processed 1 at a time based on a dt.
+    //console.log(broken)
+    say.speak(broken, 'Alex', 1.0)
+}
 
 
 
