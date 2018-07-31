@@ -14,7 +14,45 @@ const mi = require(`./mixerInteractive.js`);
 const mConst = require(`./mixerConstellation.js`); 
 //
 
+const kothList = [];
+let oldkoth = Date.now();
+let commandBlacklist = []; // commandBlacklist[username] = {datetime rmeoval}
+const intPlayers = [];
+const playerList = [];
 
+
+let playerObj = function (userid, participant){ // you should use this... you wrote it... didnt
+let self = this;
+self.userid = userid;
+self.participant = participant;
+self.api;
+self.stats = {
+    name: '',
+    hp: 0,
+    mp: 0,
+    ss: 0,
+    str:0,
+    agi:0,
+    int:0,
+    buff:[],
+    debuff:[],
+    items: {
+    head: -1,
+    chest: -1,
+    legs: -1,
+    feet: -1,
+    wea1: -1,
+    wea2: -1,
+    },
+    rewards:{
+    achieves: [],
+    currency: 0,
+    bankcurrency: 0,
+    owned: [],
+    },
+}
+return self;
+}
 
 
 const authToken = require(configfile);
@@ -86,6 +124,65 @@ function mixerGameClientError(err){
     process.exit(1);
 };
 
+function buttonEvent(results){
+    switch(results.data[0].controlID){
+        case'koth':
+            //add user to koth
+            let u = Date.now();
+            let t = (u - oldkoth);
+            if(typeof(kothList[results.data[2].userID]) == 'undefined'){
+                // console.log(`new user`)
+                kothList[results.data[2].userID] = {name: results.data[2].username, points: t};
+            }
+            else{          
+                // console.log(`old user`)
+                kothList[results.data[2].userID].points += t;
+            }
+            // console.log(kothList)
+            //
+            //add points to old user, replace new user
+
+            mixer['interactive'].updateControl({
+                sceneID: 'default',
+                controls: [
+                    {
+                        controlID: 'koth',
+                        text: results.data[2].username,
+                    },
+                ],
+            })
+
+            oldkoth = u;
+        break;
+        case'lmiad':
+            mixer['chat'].say(`🔥 Look @${results.data[2].username}, I'm a dragon!! 🔥`)
+            // mixer['chat'].whisper(results.data[2].username,`🔥 Look ${results.data[2].username}, I'm a dragon!! 🔥`)
+            mixer['interactive'].updateControl({
+                sceneID: 'default',
+                controls: [
+                    {
+                        controlID: 'lmiad',
+                        text: results.data[2].username,
+                    },
+                ],
+            })
+        break; 
+        case'seecode':
+            mixer['chat'].say(`The Code for this bot is Here @${results.data[2].username}:\n https://github.com/mikethemadkiwi/Kiwisbot`)
+            // sayThis(`Check out the code at git hub dot com forward slash mike the mad kiwi`);
+        break;
+        case'banme':
+            mixer['chat'].selfBan(results.data[2].username, 60);
+            // sayThis(`${results.data[2].username} couldnt handle it anymore and banned themselves!`);
+        break;
+        case'overlay':
+            console.log(results.data[1])
+        break;
+        default://
+    }
+
+}
+
 function loadMixerServices(token){
 
     //interactive
@@ -103,18 +200,9 @@ function loadMixerServices(token){
     mixer['const'] = new mConst(authToken.channelId);
 
 
-
-
-
-
-
-
-
-
     ////////////////////////////////////////////////////////////
     // |Handlers|  
     ////////////////////////////////////////////////////////////
-    const kothList = [];
     let sendlist = setInterval(function(){
         let list = [];
         for(var i=0;i<kothList.length;i++){
@@ -132,7 +220,6 @@ function loadMixerServices(token){
             ],
         })
     }, 500)
-    let oldkoth = Date.now();
     mixer['interactive'].on('controlEvt', results => {
         // console.log(results.type)
         // console.log(results.data)
@@ -144,60 +231,29 @@ function loadMixerServices(token){
         // }
         //console.log(`###################################################################`);
         //mixer['chat'].say(`User: ${results.data[2].username} pressed "${results.data[0].controlID}" for ${results.data[0].cost} sparks.`)
-        switch(results.data[0].controlID){
-            case'koth':
-                //add user to koth
-                let u = Date.now();
-                let t = (u - oldkoth);
-                if(typeof(kothList[results.data[2].userID]) == 'undefined'){
-                    // console.log(`new user`)
-                    kothList[results.data[2].userID] = {name: results.data[2].username, points: t};
-                }
-                else{          
-                    // console.log(`old user`)
-                    kothList[results.data[2].userID].points += t;
-                }
-                // console.log(kothList)
-                //
-                //add points to old user, replace new user
+        let tmpu = -1; // THIS IS RETURNING fuckkkkkkkki
 
-                mixer['interactive'].updateControl({
-                    sceneID: 'default',
-                    controls: [
-                        {
-                            controlID: 'koth',
-                            text: results.data[2].username,
-                        },
-                    ],
-                })
+        //if  buttonpress is koth or mainpanelswitch dont run this.
 
-                oldkoth = u;
-            break;
-            case'lmiad':
-                mixer['chat'].say(`🔥 Look @${results.data[2].username}, I'm a dragon!! 🔥`)
-                // mixer['chat'].whisper(results.data[2].username,`🔥 Look ${results.data[2].username}, I'm a dragon!! 🔥`)
-                mixer['interactive'].updateControl({
-                    sceneID: 'default',
-                    controls: [
-                        {
-                            controlID: 'lmiad',
-                            text: results.data[2].username,
-                        },
-                    ],
-                })
-            break; 
-            case'seecode':
-                mixer['chat'].say(`The Code for this bot is Here @${results.data[2].username}:\n https://github.com/mikethemadkiwi/Kiwisbot`)
-                sayThis(`Check out the code at git hub dot com forward slash mike the mad kiwi`);
-            break;
-            case'banme':
-                mixer['chat'].selfBan(results.data[2].username, 60);
-                sayThis(`${results.data[2].username} couldnt handle it anymore and banned themselves!`);
-            break;
-            case'overlay':
-                console.log(results.data[1])
-            break;
-            default://
+        for (key in commandBlacklist){
+            if (key == results.data[2].username){
+                //this is the fuggin id i want... check if THIS exists...
+                tmpu = commandBlacklist[key];
+            }
+        }
+        if(tmpu != -1){ // user exists
+            if(Date.now() > tmpu){
+                commandBlacklist[results.data[2].username] = (Date.now() + 5000); 
+                buttonEvent(results);
+            }
+            else{
+                mixer['chat'].whisper(results.data[2].username, 'You have pressed a button too recently. Fugg off... learn some GD patience. :Goatlick :mixerlove')
+                // console.log(tmpu)
+            }
+        }
+        else{
+            commandBlacklist[results.data[2].username] = (Date.now() + 5000);
+            buttonEvent(results); 
         }
         //
         // if(results.data[2].channelGroups.includes('Owner')){
@@ -213,42 +269,6 @@ function loadMixerServices(token){
         //     mixer['interactive'].changeGroups(results.data[2], 'game');
         // }
     });
-    const intPlayers = [];
-    const playerList = [];
-
-
-    let playerObj = function (userid, participant){
-    let self = this;
-    self.userid = userid;
-    self.participant = participant;
-    self.api;
-    self.stats = {
-        name: '',
-        hp: 0,
-        mp: 0,
-        ss: 0,
-        str:0,
-        agi:0,
-        int:0,
-        buff:[],
-        debuff:[],
-        items: {
-        head: -1,
-        chest: -1,
-        legs: -1,
-        feet: -1,
-        wea1: -1,
-        wea2: -1,
-        },
-        rewards:{
-        achieves: [],
-        currency: 0,
-        bankcurrency: 0,
-        owned: [],
-        },
-    }
-    return self;
-    }
 
 
     mixer['interactive'].on('participantJoin', results => {

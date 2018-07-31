@@ -20,6 +20,9 @@ let beamInteractive = function(auth) {
     self.mixerInteractive.on('error', e => this.mixerGameClientError(e));
     self.mixerInteractive.open(auth).catch(this.mixerGameClientError);
     
+    // for the love of god put in xbox handlers into the html's js file.
+
+
     this.serverDeets = function(deets){
         // console.log(`interactive got server deets~ updating control!`)
         
