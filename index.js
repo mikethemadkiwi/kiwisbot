@@ -17,41 +17,46 @@ const mConst = require(`./mixerConstellation.js`);
 const kothList = [];
 let oldkoth = Date.now();
 let commandBlacklist = []; // commandBlacklist[username] = {datetime rmeoval}
+let globalCooldown = [];
 const intPlayers = [];
 const playerList = [];
 
 
-let playerObj = function (userid, participant){ // you should use this... you wrote it... didnt
-let self = this;
-self.userid = userid;
-self.participant = participant;
-self.api;
-self.stats = {
-    name: '',
-    hp: 0,
-    mp: 0,
-    ss: 0,
-    str:0,
-    agi:0,
-    int:0,
-    buff:[],
-    debuff:[],
-    items: {
-    head: -1,
-    chest: -1,
-    legs: -1,
-    feet: -1,
-    wea1: -1,
-    wea2: -1,
-    },
-    rewards:{
-    achieves: [],
-    currency: 0,
-    bankcurrency: 0,
-    owned: [],
-    },
-}
-return self;
+let playerObj = function (userid, participant){ // you should use this... you wrote it... didnt ( didnt what you stoned old man?!?!?!? )
+    let self = this;
+    self.userid = userid;
+    self.participant = participant;
+    self.api;
+    self.stats = {
+        name: '',
+        hp: 0,
+        mp: 0,
+        ss: 0,
+        str:0,
+        agi:0,
+        int:0,
+        buff:[],
+        debuff:[],
+        items: {
+        head: -1,
+        chest: -1,
+        legs: -1,
+        feet: -1,
+        wea1: -1,
+        wea2: -1,
+        },
+        inventory:{
+            player: [],
+            bank: [],
+        },
+        rewards:{
+        achieves: [],
+        currency: 0,
+        bankcurrency: 0,
+        owned: [],
+        },
+    }
+    return self;
 }
 
 
@@ -169,11 +174,15 @@ function buttonEvent(results){
         break; 
         case'seecode':
             mixer['chat'].say(`The Code for this bot is Here @${results.data[2].username}:\n https://github.com/mikethemadkiwi/Kiwisbot`)
-            // sayThis(`Check out the code at git hub dot com forward slash mike the mad kiwi`);
+            sayThis(`Check out the code at git hub dot com forward slash mike the mad kiwi`);
+        break; 
+        case'selfshout':
+            mixer['chat'].say(`Give @${results.data[2].username} a follow and check them out some time! you'll be glad you did :D mixer.com/${results.data[2].username} :D`)
+            sayThis(`Shameless Promotion mode engaged. You should all go follow ${results.data[2].username} . They are amazing. Shameless Promotion mode disengaged.`)
         break;
         case'banme':
-            mixer['chat'].selfBan(results.data[2].username, 60);
-            // sayThis(`${results.data[2].username} couldnt handle it anymore and banned themselves!`);
+            mixer['chat'].selfBan(results.data[2].username, 120);
+            sayThis(`${results.data[2].username} couldnt handle it anymore and banned themselves!`);
         break;
         case'overlay':
             console.log(results.data[1])
@@ -231,30 +240,72 @@ function loadMixerServices(token){
         // }
         //console.log(`###################################################################`);
         //mixer['chat'].say(`User: ${results.data[2].username} pressed "${results.data[0].controlID}" for ${results.data[0].cost} sparks.`)
-        let tmpu = -1; // THIS IS RETURNING fuckkkkkkkki
-
-        //if  buttonpress is koth or mainpanelswitch dont run this.
-
-        for (key in commandBlacklist){
-            if (key == results.data[2].username){
-                //this is the fuggin id i want... check if THIS exists...
-                tmpu = commandBlacklist[key];
+        //inputEvent.transactionID.hasOwnProperty('propname')
+        let CD = 5000;
+        if(results.data[0].meta.hasOwnProperty('CD')){
+            // console.log(globalCooldown)
+            // console.log(results.data[0].meta.CD)
+            CD = results.data[0].meta.CD.value;
+            // globalCooldown
+            let tmpg = -1
+            for (key in globalCooldown){
+                if (key == results.data[0].controlID){
+                    //this is the fuggin id i want... check if THIS exists...
+                    tmpg = commandBlacklist[key];
+                }
             }
+            if(tmpg != -1){ // 
+                if(Date.now() > tmpg){
+                    globalCooldown[results.data[0].controlID] = (Date.now() + CD); 
+                    buttonEvent(results);
+                }
+                else{
+                    let tuc = globalCooldown[results.data[0].controlID] - Date.now();
+                    tuc = Math.floor(tuc/1000);
+                    mixer['chat'].whisper(results.data[2].username,`:GoatLick :mixerlove Someone has pressed this button too recently. ${tuc}secs til usable. :GoatLick :mixerlove`);
+                }
+            }
+            else{
+                globalCooldown[results.data[0].controlID] = (Date.now() + CD);
+                buttonEvent(results); 
+            }
+
         }
-        if(tmpu != -1){ // user exists
-            if(Date.now() > tmpu){
-                commandBlacklist[results.data[2].username] = (Date.now() + 5000); 
+        else { // process if the button is NOT globally cooled
+
+            //if  buttonpress is koth or mainpanelswitch dont run this.
+            if(results.data[0].controlID == 'mainpanelswitch' || results.data[0].controlID == 'koth'){
                 buttonEvent(results);
             }
             else{
-                mixer['chat'].whisper(results.data[2].username, 'You have pressed a button too recently. Fugg off... learn some GD patience. :Goatlick :mixerlove')
-                // console.log(tmpu)
+                let tmpu = -1; // THIS IS RETURNING fuckkkkkkkki
+                if(results.data[0].controlID == 'banme'){
+                    CD = 120000
+                }
+                for (key in commandBlacklist){
+                    if (key == results.data[2].username){
+                        //this is the fuggin id i want... check if THIS exists...
+                        tmpu = commandBlacklist[key];
+                    }
+                }
+                if(tmpu != -1){ // user exists
+                    if(Date.now() > tmpu){
+                        commandBlacklist[results.data[2].username] = (Date.now() + CD); 
+                        buttonEvent(results);
+                    }
+                    else{
+                        mixer['chat'].whisper(results.data[2].username, ':GoatLick :mixerlove You have pressed a button too recently. Fugg off... learn some GD patience. :GoatLick :mixerlove')
+                        // console.log(tmpu)
+                    }
+                }
+                else{
+                    commandBlacklist[results.data[2].username] = (Date.now() + CD);
+                    buttonEvent(results); 
+                }
             }
+
         }
-        else{
-            commandBlacklist[results.data[2].username] = (Date.now() + 5000);
-            buttonEvent(results); 
-        }
+
         //
         // if(results.data[2].channelGroups.includes('Owner')){
         //     mixer['interactive'].changeGroups(results.data[2], 'admin');
@@ -348,7 +399,8 @@ function loadMixerServices(token){
                                 meta: {Text: 'ytoff'}
                             },
                         ],
-                    })                
+                    })     
+                break;           
                 default:
                 //
                 }

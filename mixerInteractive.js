@@ -69,6 +69,9 @@ let beamInteractive = function(auth) {
                     this.HandleControls(self.mixerInteractive.state.getScene(scene.sceneID).getControls());
                 });
             })
+            .catch(function(err){
+                console.error(err)
+            })
         })
         .then(() =>{
             self.mixerInteractive.ready(true); /// runs the whole Jobby! (kinda, dont be a dick, really it's within scope.)
@@ -84,7 +87,8 @@ let beamInteractive = function(auth) {
 
     //update  controls 
     this.updateControl = function(control){
-        this.mixerInteractive.updateControls(control);
+        this.mixerInteractive.updateControls(control)
+        .catch(reason => console.error('Promise rejected', reason));
     }
 
 
@@ -154,7 +158,7 @@ let beamInteractive = function(auth) {
             })
 
             control.on('mousedown', (inputEvent, participant) => {
-                if(typeof(inputEvent.transactionID) != 'undefined'){
+                if(typeof(inputEvent.transactionID) != 'undefined'){ //inputEvent.transactionID.hasOwnProperty('propname')
                     self.mixerInteractive.captureTransaction(inputEvent.transactionID).catch(reason => console.error('Promise rejected', reason));
                     // console.log(`User ${participant.username} charged ${control.cost} sparks (${inputEvent.transactionID})`)
                 } 

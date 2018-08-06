@@ -36,7 +36,6 @@ let obj = function(chanid){
         console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
     });
     ca.on('error', (err) => {
-        ca.close();
         console.log(` constellation`)
         console.log(err);
     });    

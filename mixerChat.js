@@ -16,7 +16,7 @@ let beamchat = function(auth) {
             expires: auth.expires_at,
         },
     }));
-
+    
     // Gets the user that the Access Token we provided above belongs to.
     client.request('GET', `users/current`)
     .then(response => {
