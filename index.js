@@ -4,7 +4,7 @@ const clientLib = require('beam-client-node');
 const auth = require('mixer-shortcode-oauth');
 const colors = require('colors');
 const ws = require('ws'); 
-const say = require('say');
+const say = require('say');//--
 //npm install beam-interactive-node2 colors ws beam-client-node mixer-shortcode-oauth say carina --save
 //
 const mixer = [];
@@ -12,6 +12,7 @@ const configfile = './config.json';
 const mc = require(`./mixerChat.js`);
 const mi = require(`./mixerInteractive.js`); 
 const mConst = require(`./mixerConstellation.js`); 
+const mSock = require(`./mixerPageSocket.js`); 
 //
 
 const kothList = [];
@@ -21,6 +22,12 @@ let globalCooldown = [];
 const intPlayers = [];
 const playerList = [];
 
+
+let emojiFarm=[];
+emojiFarm.push({id: 'dragon',data: '🐉'})
+emojiFarm.push({id: 'dragonface',data: '🐲'})
+emojiFarm.push({id: 'kiwi',data: '🥝'})
+emojiFarm.push({id: 'greenheart',data: '💚'})
 
 let playerObj = function (userid, participant){ // you should use this... you wrote it... didnt ( didnt what you stoned old man?!?!?!? )
     let self = this;
@@ -173,9 +180,12 @@ function buttonEvent(results){
             })
         break; 
         case'seecode':
-            mixer['chat'].say(`The Code for this bot is Here @${results.data[2].username}:\n https://github.com/mikethemadkiwi/Kiwisbot`)
-            sayThis(`Check out the code at git hub dot com forward slash mike the mad kiwi`);
+            mixer['chat'].say(`The Code for this bot is Here @${results.data[2].username}:\n https://cnhv.co/8glgz`)
+            sayThis(`Check out Mike the Mad kiwi's code! Download Link has been added to chat`);
         break; 
+        case'support':
+            mixer['chat'].whisper(results.data[2].username, `You can support by running this while you watch!! it supports the community i am part of! https://authedmine.com/media/miner.html?key=xPTovGD63eQRfB2zRLPI6vrN9zPzmoJJ`)
+        break;  
         case'selfshout':
             mixer['chat'].say(`Give @${results.data[2].username} a follow and check them out some time! you'll be glad you did :D mixer.com/${results.data[2].username} :D`)
             sayThis(`Shameless Promotion mode engaged. You should all go follow ${results.data[2].username} . They are amazing. Shameless Promotion mode disengaged.`)
@@ -207,7 +217,8 @@ function loadMixerServices(token){
     })
     //const   
     mixer['const'] = new mConst(authToken.channelId);
-
+    //mixer page websocket
+    mixer['sock'] = new mSock();
 
     ////////////////////////////////////////////////////////////
     // |Handlers|  
@@ -243,30 +254,30 @@ function loadMixerServices(token){
         //inputEvent.transactionID.hasOwnProperty('propname')
         let CD = 5000;
         if(results.data[0].meta.hasOwnProperty('CD')){
-            // console.log(globalCooldown)
-            // console.log(results.data[0].meta.CD)
-            CD = results.data[0].meta.CD.value;
+            // console.log(results.data[0])
+            let gCD = results.data[0].meta.CD.value; //30000
             // globalCooldown
-            let tmpg = -1
+            let tmpg = -1;
+            
+            // console.log(globalCooldown)
             for (key in globalCooldown){
                 if (key == results.data[0].controlID){
-                    //this is the fuggin id i want... check if THIS exists...
-                    tmpg = commandBlacklist[key];
+                    tmpg = Number(globalCooldown[key]);// returns Date
                 }
             }
+            
             if(tmpg != -1){ // 
                 if(Date.now() > tmpg){
-                    globalCooldown[results.data[0].controlID] = (Date.now() + CD); 
+                    globalCooldown[results.data[0].controlID] = (Date.now() + gCD); 
                     buttonEvent(results);
                 }
                 else{
-                    let tuc = globalCooldown[results.data[0].controlID] - Date.now();
-                    tuc = Math.floor(tuc/1000);
-                    mixer['chat'].whisper(results.data[2].username,`:GoatLick :mixerlove Someone has pressed this button too recently. ${tuc}secs til usable. :GoatLick :mixerlove`);
+                    let tuc = globalCooldown[results.data[0].controlID] - Date.now(); //should return time until over
+                    mixer['chat'].whisper(results.data[2].username,`:GoatLick :mixerlove Someone has pressed this button too recently. ${tuc} ms til usable. :GoatLick :mixerlove`);
                 }
             }
             else{
-                globalCooldown[results.data[0].controlID] = (Date.now() + CD);
+                globalCooldown[results.data[0].controlID] = (Date.now() + gCD);
                 buttonEvent(results); 
             }
 
@@ -323,17 +334,17 @@ function loadMixerServices(token){
 
 
     mixer['interactive'].on('participantJoin', results => {
-        console.log(`participantJoin`)
+        console.log(`${colors.green(`Participant: `)} ${colors.yellow(`join`)}`)
         console.log(`{${results.userID}} ${results.username}`)
         intPlayers[results.sessionID] = results;
         playerList[results.sessionID] = new playerObj(results.userID, results);
-        console.log(`###################################################################`);
+        mixer['sock'].sendToSocket('participantJoin', playerList[results.sessionID])
     });
     mixer['interactive'].on('participantLeave', results => {
-        console.log(`participantLeave`)
+        console.log(`${colors.green(`Participant: `)} ${colors.yellow(`leave`)}`)
         console.log(results)
-        console.log(intPlayers[results].username)
-        console.log(`###################################################################`);
+        console.log(intPlayers[results].username)     
+        mixer['sock'].sendToSocket('participantLeave', playerList[results])
         for(key in intPlayers){
             if(intPlayers[key].sessionID == results){
                 intPlayers.splice(key, -1);
@@ -341,7 +352,7 @@ function loadMixerServices(token){
         }
     });
     mixer['interactive'].on('participantUpdate', results => {
-        console.log(`participantUpdate`)
+        console.log(`${colors.green(`Participant: `)} ${colors.yellow(`update`)}`)
         console.log(results)
         intPlayers[results.sessionID] = results;
         console.log(`###################################################################`);
@@ -400,6 +411,10 @@ function loadMixerServices(token){
                             },
                         ],
                     })     
+                break;    
+                case '`sama':
+                    mixer['chat'].say(':pixelheart :pukingrainbows You should all go follow mr @Samalander on here and over at his regular stream location : twitch.tv/samalander :pukingrainbows :pixelheart');
+                    sayThis(` You should all go follow Samalander on here, and over at his regular stream location twitch.tv / samalander`);
                 break;           
                 default:
                 //
@@ -506,6 +521,11 @@ let sayBlacklist = [
     {word:'o/', replace:'wave'},
     {word:'o7', replace:'salute'},
     {word:'REJEkT_RADIO', replace:'Teebs'},
+    {word:'rawdeegaming', replace:'His Royal Rawe Some Ness'},
+    {word:'shadow404', replace:'shadow four oh four'},
+    {word:'dearfish', replace:'That sexy koi toy'},
+    {word:'samalander', replace:'Sam Ah Lander'},
+    {word:'Samalander', replace:'Sam Ah Lander'},
 ]
 function sayThis(msg){
     // for (key in t){
@@ -527,7 +547,7 @@ function sayThis(msg){
     }
     // this needs to be added to a queu first then processed 1 at a time based on a dt.
     //console.log(broken)
-    say.speak(broken, 'Alex', 1.0)
+    say.speak(broken, 'Alex', 1.0)//
 }
 
 
