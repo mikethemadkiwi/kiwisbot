@@ -4,6 +4,7 @@ let events = require('events');
 //module
 let obj = function(){
     let self = this;
+    const configfile = './config.json';
     const express = require('express');
     const app = express();
     const colors = require('colors');
@@ -52,7 +53,6 @@ let obj = function(){
         io.emit(name, data);
     }
 
-
     self.socketUsers = [];
     //
     io.on('connection', function (socket) {
@@ -61,7 +61,7 @@ let obj = function(){
         console.log(`${socket.name} connected from : ${socket.handshake.address}`); 
         self.socketUsers[socket.id] = socket;
         self.emit('connected', socket)
-        io.emit('connected', socket.handshake.address);
+        // io.emit('connected', socket.handshake.address);
         // console.log(self.socketUsers);
         //
 
@@ -73,7 +73,7 @@ let obj = function(){
             console.log(socket.name + ' disconnected');            
             self.removeFromArray(self.socketUsers, socket.name)
             self.emit('disconnected', socket)
-            io.emit('disconnected', socket.handshake.address);
+            // io.emit('disconnected', socket.handshake.address);
             // console.log(self.socketUsers);
         });
     });

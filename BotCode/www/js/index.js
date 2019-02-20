@@ -10,21 +10,34 @@ var mc = document.getElementById('mainContent');
 let objDatabase = [];
 
 
-socket.on('connected', function(socketname) {
-    console.log(`user connected from socket: ${socketname}.`);  
-// if(window.location.hash){ socket.emit('hash', window.location.hash); }
+socket.on('ChatMessage', function(data) {
+    // console.log('ChatMessage', data)
+    let obj = {};
+    obj.data = data;
+    obj.str = '';
+    obj.update = function(){
+        obj.str = '';
+        let tmpstr = `${obj.data.user_level} > ${obj.data.user_name} > `;
+        for (key in obj.data.message.message){
+            tmpstr += `${obj.data.message.message[key].text} `;
+        }
+        tmpstr += '<br />';        
+        mc.innerHTML += tmpstr;
+    }
+    objDatabase.push(obj);
+    UpdateEngine();
 });
 socket.on('participantJoin', function(data) {
-    console.log(data)
+    // console.log(data)
     console.log(`user connected from Interactive:`);  
 // if(window.location.hash){ socket.emit('hash', window.location.hash); }
 });
-socket.on('disconnected', function(socketname) {
-    console.log(`user disconnected from socket: ${socketname}.`);
-// if(window.location.hash){ socket.emit('hash', window.location.hash); }
-});
+// socket.on('disconnected', function(socketname) {
+//     console.log(`user disconnected from socket: ${socketname}.`);
+// // if(window.location.hash){ socket.emit('hash', window.location.hash); }
+// });
 socket.on('participantLeave', function(data) {
-    console.log(data)
+    // console.log(data)
     console.log(`user disconnected from Interactive:`);
 // if(window.location.hash){ socket.emit('hash', window.location.hash); }
 });
@@ -74,12 +87,8 @@ socket.on('image', function(name) {
 ///
 let UpdateEngine = function() {
     mc.innerHTML = '';
-    if(objDatabase.length > 8){
-        objDatabase.shift(); 
-    }
-    for (var i = 0;i< objDatabase.length; i++) {
-        objDatabase[i].update(i);
+    for (key in objDatabase) {
+        objDatabase[key].update();
     }
     window.scrollTo(0, document.body.scrollHeight);
 };
-

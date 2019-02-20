@@ -34,6 +34,7 @@ let beamInteractive = function(auth) {
         console.log('Mixer client opened');
         // self.mixerInteractive.on('message', (err) => console.log('<<<', err));
         // self.mixerInteractive.on('send', (err) => console.log('>>>', err));
+        // self.mixerInteractive.on('error', (err) => console.log('>>>', err));
         
         // LISTENERS
         self.mixerInteractive.state.on('participantJoin', participant => {
@@ -143,31 +144,35 @@ let beamInteractive = function(auth) {
             // control.setBackgroundColor(`#bada55`)
             // control.setTextColor(`#000000`)
             control.on('click', (inputEvent, participant) => {
-                // if(typeof(inputEvent.transactionID) != 'undefined'){
-                //     self.mixerInteractive.captureTransaction(inputEvent.transactionID).catch(reason => console.error('Promise rejected', reason));
-                //     // console.log(`User ${participant.username} charged ${control.cost} sparks (${inputEvent.transactionID})`)
-                // }
-                // console.log(control)
-                // console.log(inputEvent)
-                if(participant.groupID != 'banned'){
-                    self.emit('controlEvt', {type: 'click', data: [control, inputEvent, participant]})
+                                  
+                if( participant.anonymous != true){
+                    if(participant.groupID != 'banned'){
+                        if (inputEvent.hasOwnProperty('transactionID')){
+                            // proccess the transactionID
+                        }
+                        self.emit('controlEvt', {type: 'mousedown', data: [control, inputEvent, participant]})
+                    }
+                    else {                    
+                        console.log(`ignored click from ${participant.username}`)
+                    }                      
                 }
-                else {                    
-                    console.log(`ignored click from ${participant.username}`)
-                }
+                
             })
 
-            control.on('mousedown', (inputEvent, participant) => {
-                if(typeof(inputEvent.transactionID) != 'undefined'){ //inputEvent.transactionID.hasOwnProperty('propname')
-                    self.mixerInteractive.captureTransaction(inputEvent.transactionID).catch(reason => console.error('Promise rejected', reason));
-                    // console.log(`User ${participant.username} charged ${control.cost} sparks (${inputEvent.transactionID})`)
-                } 
-                if(participant.groupID != 'banned'){
-                    self.emit('controlEvt', {type: 'mousedown', data: [control, inputEvent, participant]})
-                }
-                else {                    
-                    console.log(`ignored click from ${participant.username}`)
-                }
+            control.on('mousedown', (inputEvent, participant) => {   
+
+                if( participant.anonymous != true){
+                    if(participant.groupID != 'banned'){
+                        if (inputEvent.hasOwnProperty('transactionID')){
+                            // proccess the transactionID
+                        }
+                        self.emit('controlEvt', {type: 'mousedown', data: [control, inputEvent, participant]})
+                    }
+                    else {                    
+                        console.log(`ignored click from ${participant.username}`)
+                    }                      
+                }   
+                                         
             })
         })
     }

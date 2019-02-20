@@ -14,13 +14,16 @@ const mi = require(`./mixerInteractive.js`);
 const mConst = require(`./mixerConstellation.js`); 
 const mSock = require(`./mixerPageSocket.js`); 
 //
-
+let verbose = true;
 const kothList = [];
 let oldkoth = Date.now();
 let commandBlacklist = []; // commandBlacklist[username] = {datetime rmeoval}
 let globalCooldown = [];
 const intPlayers = [];
 const playerList = [];
+let ViewsCurrent = 0;
+let ViewsTotal = 0;
+let shouldICharge = false;
 
 
 let emojiFarm=[];
@@ -153,31 +156,35 @@ function buttonEvent(results){
             // console.log(kothList)
             //
             //add points to old user, replace new user
-
-            mixer['interactive'].updateControl({
-                sceneID: 'default',
-                controls: [
-                    {
-                        controlID: 'koth',
-                        text: results.data[2].username,
-                    },
-                ],
-            })
-
+            // everyone fires the event to all connected participants;
+            // group:<ID> fires the event to all participants in the group identified by the <ID>;
+            // scene:<ID> fires the event to all participants in the scene identified by the <ID>;
+            // participant:<UUID> fires the event to a single participant with the sessionID of <UUID>.
+            mixer['interactive'].mixerInteractive.broadcastEvent({"scope":["group:default"], "data": {"koth": `${results.data[2].username}`}}).catch(reason => console.error('Promise rejected', reason));
+            // mixer['interactive'].mixerInteractive.updateControls({
+            //     sceneID: 'default',
+            //     controls: [
+            //         {
+            //             controlID: 'koth',
+            //             data: results.data[2].username,
+            //         },
+            //     ],
+            // }).catch(reason => console.error('Promise rejected', reason));
             oldkoth = u;
         break;
         case'lmiad':
             mixer['chat'].say(`🔥 Look @${results.data[2].username}, I'm a dragon!! 🔥`)
             // mixer['chat'].whisper(results.data[2].username,`🔥 Look ${results.data[2].username}, I'm a dragon!! 🔥`)
-            mixer['interactive'].updateControl({
-                sceneID: 'default',
-                controls: [
-                    {
-                        controlID: 'lmiad',
-                        text: results.data[2].username,
-                    },
-                ],
-            })
+            mixer['interactive'].mixerInteractive.broadcastEvent({"scope":["group:default"], "data": {"lmiad": `${results.data[2].username}`}}).catch(reason => console.error('Promise rejected', reason));
+            // mixer['interactive'].updateControl({
+            //     sceneID: 'default',
+            //     controls: [
+            //         {
+            //             controlID: 'lmiad',
+            //             text: results.data[2].username,
+            //         },
+            //     ],
+            // })
         break; 
         case'seecode':
             mixer['chat'].say(`The Code for this bot is Here @${results.data[2].username}:\n https://cnhv.co/8glgz`)
@@ -187,8 +194,15 @@ function buttonEvent(results){
             mixer['chat'].whisper(results.data[2].username, `You can support by running this while you watch!! it supports the community i am part of! https://authedmine.com/media/miner.html?key=xPTovGD63eQRfB2zRLPI6vrN9zPzmoJJ`)
         break;  
         case'selfshout':
+        if (results.data[2].username == 'Samalander'){
+            mixer['chat'].say(':pixelheart :pukingrainbows You should all go follow mr @Samalander on here and over at his regular stream location : twitch.tv/samalander :pukingrainbows :pixelheart');
+            sayThis(`Shameless Promotion mode engaged. You should all go follow Samalander on here, and over at his regular stream location twitch.tv / samalander. He are amazing. hashtag everthing is fine. Shameless Promotion mode disengaged.`);
+        }
+        else {
             mixer['chat'].say(`Give @${results.data[2].username} a follow and check them out some time! you'll be glad you did :D mixer.com/${results.data[2].username} :D`)
             sayThis(`Shameless Promotion mode engaged. You should all go follow ${results.data[2].username} . They are amazing. Shameless Promotion mode disengaged.`)
+        }
+
         break;
         case'banme':
             mixer['chat'].selfBan(results.data[2].username, 120);
@@ -205,6 +219,7 @@ function buttonEvent(results){
 function loadMixerServices(token){
 
     //interactive
+    // mixer['interactive'] = {}
     mixer['interactive'] = new mi({
         authToken: token.access_token,
         versionId: authToken.interactiveId,
@@ -217,8 +232,14 @@ function loadMixerServices(token){
     })
     //const   
     mixer['const'] = new mConst(authToken.channelId);
-    //mixer page websocket
+    // //mixer page websocket
     mixer['sock'] = new mSock();
+    // mixer['sock'].on('connected', results =>{
+    //     console.log('websock:connect', results)
+    // })
+    // mixer['sock'].on('disconnected', results =>{
+    //     console.log('disconnected', results)
+    // })
 
     ////////////////////////////////////////////////////////////
     // |Handlers|  
@@ -230,20 +251,49 @@ function loadMixerServices(token){
                 list.push(kothList[i]);
             }
         }
-        mixer['interactive'].updateControl({
-            sceneID: 'default',
-            controls: [
-                {
-                    controlID: 'kothwinner',
-                    data: list,
-                },
-            ],
-        })
-    }, 500)
+        mixer['interactive'].mixerInteractive.broadcastEvent({"scope":["group:default"], "data": {"kothwinner": list}}).catch(reason => console.error('Promise rejected', reason));
+        
+        // mixer['interactive'].mixerInteractive.updateControls({
+        //     sceneID: 'default',
+        //     controls: [
+        //         {
+        //             controlID: 'kothwinner',
+        //             data: list,
+        //         },
+        //     ],
+        // }).catch(reason => console.error('Promise rejected', reason));
+        
+    }, 1000);
+
     mixer['interactive'].on('controlEvt', results => {
         // console.log(results.type)
-        // console.log(results.data)
+        // console.log(results.data[1])
+        // for (key in results.data){
+        //     console.log(key, results.data[key])
+        // }
+        if(results.data[1].transactionID){
+            if (shouldICharge) {
+                mixer['interactive'].mixerInteractive.captureTransaction(results.data[1].transactionID).catch(reason => console.error('Promise rejected', reason));
+                console.log(`${results.data[1].transactionID}:${results.data[2].username}:${results.data[0].controlID}`)
+            }
+        }
+        switch(results.type){
+            case('click'):
+                // console.log('---i am a click event---')
+            break;
+            case('mouseup'):
+                // console.log('---i am a mouseup event---')
+            break;
+            case('mousedown'):
+                // console.log('---i am a mousedown event---')
+            break;
+            default://
+        }
+        // for (key in results.data[1]){
+            // console.log(key, results.data[1][key])
+        // }
         // console.log(results.data[0].controlID)
+        
         // console.log(results.data[2].username)
         // console.log(`Spark Cost: ${results.data[0].cost}`)
         // if(typeof(results.data[0].meta.Command) != 'undefined'){
@@ -252,6 +302,8 @@ function loadMixerServices(token){
         //console.log(`###################################################################`);
         //mixer['chat'].say(`User: ${results.data[2].username} pressed "${results.data[0].controlID}" for ${results.data[0].cost} sparks.`)
         //inputEvent.transactionID.hasOwnProperty('propname')
+        
+        // 
         let CD = 5000;
         if(results.data[0].meta.hasOwnProperty('CD')){
             // console.log(results.data[0])
@@ -273,7 +325,7 @@ function loadMixerServices(token){
                 }
                 else{
                     let tuc = globalCooldown[results.data[0].controlID] - Date.now(); //should return time until over
-                    mixer['chat'].whisper(results.data[2].username,`:GoatLick :mixerlove Someone has pressed this button too recently. ${tuc} ms til usable. :GoatLick :mixerlove`);
+                    // mixer['chat'].whisper(results.data[2].username,`:GoatLick :mixerlove Someone has pressed this button too recently. ${tuc} ms til usable. :GoatLick :mixerlove`);
                 }
             }
             else{
@@ -305,7 +357,7 @@ function loadMixerServices(token){
                         buttonEvent(results);
                     }
                     else{
-                        mixer['chat'].whisper(results.data[2].username, ':GoatLick :mixerlove You have pressed a button too recently. Fugg off... learn some GD patience. :GoatLick :mixerlove')
+                        // mixer['chat'].whisper(results.data[2].username, ':GoatLick :mixerlove You have pressed a button too recently. :GoatLick :mixerlove')
                         // console.log(tmpu)
                     }
                 }
@@ -358,7 +410,7 @@ function loadMixerServices(token){
         console.log(`###################################################################`);
     });
     mixer['chat'].on('ChatMessage', data => {
-        //console.log('ChatMessage', data);  
+        mixer['sock'].sendToSocket('ChatMessage', data);  
         if(data.user_roles.includes('Owner')){
             var tmptxt = '';
             for (key in data.message.message) { tmptxt += data.message.message[key].text; };
@@ -367,8 +419,17 @@ function loadMixerServices(token){
                 switch (cmd[0]) {
                 //
                 case '`time': 
-                    let t = new Date(Date.now())
-                    mixer['chat'].say(`Current Time:  ${t}`);
+                let t = new Date(Date.now())
+                mixer['chat'].say(`Current Time:  ${t}`);
+                break;
+                case '`verbose':
+                    if(verbose){
+                        verbose = false;
+                    }
+                    else{
+                        verbose = true;
+                    }
+                    mixer['chat'].say(`Verbose Logging to chat: ${verbose}`);
                 break;
                 case '`boardban':
                     let u; 
@@ -388,30 +449,37 @@ function loadMixerServices(token){
                     }
                     mixer['interactive'].changeGroups(thisidentifierisunique, 'default');
                 break;
-                case '`yton':
-                    mixer['interactive'].updateControl({
-                        sceneID: 'default',
-                        controls: [
-                            {
-                                controlID: 'youtubeplayer',
-                                text: 'yton',
-                                meta: {Text: `${cmd[1]}`}
-                            },
-                        ],
-                    })
+                case '`chargeusers':
+                    if (shouldICharge){
+                        shouldICharge = false;
+                        mixer['chat'].say(`Disabled Sparks for Mixplay`);
+                    }   
+                    else{
+                        shouldICharge = true;
+                        mixer['chat'].say(`Enabled Sparks for Mixplay`);
+                    } 
+                
+                break;
+                case '`stats':
+                    let randoherocomment = [
+                        'you legend. fugg... i wanna be like you.... no... i wanna HAVE you... BE MINE!! MIIIIIINNNNNE!!!!'
+                    ];
+                    let randoinsults = [
+                        'Shmuck...', 'well... that was a poor choice.', 'You messed up there buddy..', 'there goes the neighbourhood.'
+                    ];
+                    mixer['chat'].say(`############ The Following Followers Followed Today! ############`);
+                    for(key in hasFollowed){
+                        mixer['chat'].say(`${hasFollowed[key]} Followed us! ${randoinsults[1]}`);
+                    }
+                    mixer['chat'].say(`############ These asshats unfollowed cos they have standards... what the actual fugg ############`);
+                    for(key in hasUnFollowed){
+                        mixer['chat'].say(`Fugg You ${hasUnFollowed[key]} for unfollowing..`);
+                    }
+                    mixer['chat'].say(`############ These Folks Don't Value Thier Viewer's Eye Sockets, And Hosted! ############`);
+                    for(key in hasHosted){
+                        mixer['chat'].say(`Thanks.... i think... ${hasHosted[key]} for Hosting..`);
+                    }
                 break;  
-                case '`ytoff':
-                    mixer['interactive'].updateControl({
-                        sceneID: 'default',
-                        controls: [
-                            {
-                                controlID: 'youtubeplayer',
-                                text: 'ytoff',
-                                meta: {Text: 'ytoff'}
-                            },
-                        ],
-                    })     
-                break;    
                 case '`sama':
                     mixer['chat'].say(':pixelheart :pukingrainbows You should all go follow mr @Samalander on here and over at his regular stream location : twitch.tv/samalander :pukingrainbows :pixelheart');
                     sayThis(` You should all go follow Samalander on here, and over at his regular stream location twitch.tv / samalander`);
@@ -436,32 +504,31 @@ function loadMixerServices(token){
         console.log(colors.green(`Constellation: `)+colors.yellow(`${data.type}`)); // should return "hosted", "followed", "subscribed" & "resubscribed".
         switch(data.type){
             case('followed'):
-                console.log(data.info);
                 if(data.info.following == false){
                     //
 
                     if (hasUnFollowed.includes(data.info.user.username) == true){
-                        console.log(`this user has already unfollowed`)
+                        // console.log(`this user has already unfollowed`)
                     }
                     else{           
                         mixer['chat'].say(`@${data.info.user.username} unfollowed! Fugg You!! We didnt need your kind in here anyway.`)
                         sayThis(`${data.info.user.username} unfollowed! Fugg You!! We didnt need your kind in here anyway.`)
                         hasUnFollowed.push(data.info.user.username);
                         latestUnFollow = data.info.user.username;
-                        // ib.latestUnFollow = data.info.user.username;
                     }
 
                     //
                 }
                 else{   
                     if (hasFollowed.includes(data.info.user.username) == true){
-                        console.log(`this user has already followed`)
+                        // console.log(`this user has already followed`)
                     }
                     else{           
                         mixer['chat'].say(`@${data.info.user.username} followed! Thank You!!`)
                         sayThis(`${data.info.user.username} followed! Thank You!!`)
                         hasFollowed.push(data.info.user.username);
                         latestFollow = data.info.user.username; 
+                        console.log(data.info);
                         // ib.latestFollow = data.info.user.username;
                     } 
                 }          
@@ -469,14 +536,13 @@ function loadMixerServices(token){
             case('hosted'):
                 console.log(data.info.hoster.token);
                 if(hasHosted.includes(data.info.hoster.token) == true){
-                    console.log(`this user has already hosted`)
+                    // console.log(`this user has already hosted`)
                 }
-                else{          // %USER% is Hosting... Fugg now we have to act professional.
+                else{         
                     mixer['chat'].say(`@${data.info.hoster.token} is Hosting... Fugg now we have to act professional.`)
                     sayThis(`${data.info.hoster.token} is Hosting... Fugg now we have to act professional.`)
                     hasHosted.push(data.info.hoster.token);
                     latestHost = data.info.hoster.token; 
-                    // ib.latestHost = data.info.hoster.token;
                 } 
             break;
             //cos seriously kiwi, subs?!?! pfft lol
@@ -492,8 +558,34 @@ function loadMixerServices(token){
             //     console.log(data.info);
             //     // io.emit('resubscribed', data); 
             // break;
-            case('update'):
+            case('update'):                    
                 console.log(data.info);
+                if(data.info.online){
+                    let isonline = data.info.online;
+                    if (isonline){
+                        mixer['chat'].say(`You went online!`)
+                    }
+                    else {
+                        mixer['chat'].say(`You went offline!`)
+                    }
+                }
+                if(data.info.viewersTotal){
+                    let numVT = data.info.viewersTotal;
+                    mixer['chat'].say(`${numVT} Unique Channel Views.`)
+                    ViewsTotal = numVT;
+                }
+                if(data.info.viewersCurrent){
+                    let numVC = data.info.viewersCurrent;
+                    if (numVC < ViewsCurrent){
+                        console.log(`You Lost a viewer.`)
+                    }
+                    else{
+                        console.log(`You Gained a viewer.`)                        
+                    }
+                    console.log(`Viewers Currently: ${numVC} `)
+                    ViewsCurrent = numVC;
+
+                }
             break;
             default://dont trigger anything.
                 console.log(data.info);
@@ -523,7 +615,7 @@ let sayBlacklist = [
     {word:'REJEkT_RADIO', replace:'Teebs'},
     {word:'rawdeegaming', replace:'His Royal Rawe Some Ness'},
     {word:'shadow404', replace:'shadow four oh four'},
-    {word:'dearfish', replace:'That sexy koi toy'},
+    {word:'DearFish', replace:'That dead sexy koi toy'},
     {word:'samalander', replace:'Sam Ah Lander'},
     {word:'Samalander', replace:'Sam Ah Lander'},
 ]
